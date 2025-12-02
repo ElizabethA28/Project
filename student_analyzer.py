@@ -171,4 +171,11 @@ class StudentAnalyzer:
         return fig
 
 #heatmap
-
+def plot_full_heatmap(self):
+        df = self.merged_df.copy()
+        # Select numeric columns only
+        numeric_df = df.select_dtypes(include="number")
+        fig, ax = plt.subplots(figsize=(10,7))
+        sns.heatmap(numeric_df.corr(), annot=True, cmap="viridis", ax=ax)
+        ax.set_title("Correlation Heatmap (Grades, Attendance, Absences, etc.)")
+        return fig
