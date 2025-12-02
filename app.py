@@ -24,11 +24,22 @@ attendance_threshold = st.sidebar.slider("Attendance Threshold", 0.0, 1.0, 0.9)
 
 # --- Prepare filtered data ---
 filtered = merged_df[merged_df["school"] == school_filter].copy()
-filtered["avg_grade"] = (filtered["G3_math"] + filtered["G3_por"]) / 2
 
-# Guarantee attendance_rate exists
-if "attendance_rate" not in filtered.columns and "absences" in filtered.columns:
-    filtered["attendance_rate"] = 1 - (filtered["absences"] / filtered["absences"].max())
+# Ensure avg_grade exists
+if "avg_grade" not in filtered.columns:
+    if "G3_math" in filtered.columns and "G3_por" in filtered.columns:
+        filtered["avg_grade"] = (filtered["G3_math"] + filtered["G3_por"]) / 2
+    else:
+        st.error("Missing grade columns (G3_math, G3_por) in dataset.")
+        st.stop()
+
+# Ensure attendance_rate exists
+if "attendance_rate" not in filtered.columns:
+    if "absences" in filtered.columns:
+        filtered["attendance_rate"] = 1 - (filtered["absences"] / filtered["absences"].max())
+    else:
+        st.error("Missing attendance information in dataset.")
+        st.stop()
 
 # --- Grade Distribution ---
 st.header("Grade Distribution by Subject")
