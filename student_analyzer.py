@@ -39,7 +39,7 @@ class StudentAnalyzer:
             )
 
         # Aggregate attendance by school
-        if "school" in self.attendance_df.columns:
+        if "school" in self.attendance_df.columns and "attendance_rate" in self.attendance_df.columns:
             self.school_attendance = (
                 self.attendance_df.groupby("school")["attendance_rate"]
                 .mean()
@@ -61,13 +61,18 @@ class StudentAnalyzer:
         )
         if self.school_attendance is not None:
             merged = merged.merge(self.school_attendance, on="school", how="left")
+
+        # Derived columns
+        merged["avg_grade"] = (merged["G3_math"] + merged["G3_por"]) / 2
+        if "attendance_rate" not in merged.columns and "absences" in merged.columns:
+            merged["attendance_rate"] = 1 - (merged["absences"] / merged["absences"].max())
+
         self.merged_df = merged
         return merged
 
     # AT-RISK DETECTION
     def detect_at_risk(self, grade_threshold=10, attendance_threshold=0.90):
         df = self.merged_df.copy()
-        df["avg_grade"] = (df["G3_math"] + df["G3_por"]) / 2
         df["at_risk"] = (
             (df["avg_grade"] < grade_threshold) |
             (df["attendance_rate"] < attendance_threshold)
@@ -76,7 +81,7 @@ class StudentAnalyzer:
 
     # SUMMARY
     def grade_summary(self):
-        return self.merged_df[["G3_math", "G3_por"]].describe()
+        return self.merged_df[["G3_math", "G3_por", "avg_grade"]].describe()
 
     def attendance_summary(self):
         return self.school_attendance
@@ -103,8 +108,13 @@ class StudentAnalyzer:
         if "Date" in df.columns:
             df["Month"] = df["Date"].dt.month
             df["Day"] = df["Date"].dt.day
-        pivot = df.pivot_table(index="Month", columns="Day", values="attendance_rate")
-        fig, ax = plt.subplots(figsize=(14, 6))
-        sns.heatmap(pivot, cmap="YlGnBu", ax=ax)
-        ax.set_title("Attendance Rate Heatmap Over Time")
-        return fig
+        if "attendance_rate" in df.columns:
+            pivot = df.pivot_table(index="Month", columns="Day", values="attendance_rate")
+            fig, ax = plt.subplots(figsize=(14, 6))
+            sns.heatmap(pivot, cmap="YlGnBu", ax=ax)
+            ax.set_title("Attendance Rate Heatmap Over Time")
+            return fig
+        else:
+            fig, ax = plt.subplots()
+            ax.text(0.5, 0.5, "No attendance_rate data available", ha="center")
+            return fig
