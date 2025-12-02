@@ -40,12 +40,19 @@ class StudentAnalyzer:
     def merge_data(self):
         merge_keys = ["school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob","reason","guardian"]
         merged = pd.merge(self.math_df, self.por_df, on=merge_keys, suffixes=("_math","_por"), how="inner")
+
         if self.school_attendance is not None:
             merged = merged.merge(self.school_attendance, on="school", how="left")
 
+        # Derived columns
         merged["avg_grade"] = merged[["G3_math","G3_por"]].mean(axis=1)
-        if "attendance_rate" not in merged.columns and "absences" in merged.columns:
-            merged["attendance_rate"] = 1 - (merged["absences"] / merged["absences"].max())
+
+        # Guarantee attendance_rate exists
+        if "attendance_rate" not in merged.columns:
+            if "absences" in merged.columns:
+                merged["attendance_rate"] = 1 - (merged["absences"] / merged["absences"].max())
+            else:
+                merged["attendance_rate"] = 1.0
 
         self.merged_df = merged
         return merged
@@ -55,8 +62,8 @@ class StudentAnalyzer:
         df = self.merged_df.copy()
         fig, ax = plt.subplots(figsize=(8,5))
         if group_by=="subject":
-            sns.boxplot(data=df.melt(value_vars=["G3_math","G3_por"], var_name="Subject", value_name="Grade"),
-                        x="Subject", y="Grade", ax=ax)
+            melted = df.melt(value_vars=["G3_math","G3_por"], var_name="Subject", value_name="Grade")
+            sns.boxplot(data=melted, x="Subject", y="Grade", ax=ax)
             ax.set_title("Grade Distribution by Subject")
         elif group_by=="semester":
             sem_avgs = df[["G1_math","G2_math","G3_math","G1_por","G2_por","G3_por"]].melt(var_name="Semester", value_name="Grade")
@@ -70,6 +77,10 @@ class StudentAnalyzer:
     # 2. Attendance correlation
     def plot_attendance_vs_performance(self):
         df = self.merged_df.copy()
+        # Defensive check
+        for col in ["attendance_rate","avg_grade","school"]:
+            if col not in df.columns:
+                raise ValueError(f"Required column '{col}' not found in merged_df")
         fig, ax = plt.subplots(figsize=(8,5))
         sns.scatterplot(data=df, x="attendance_rate", y="avg_grade", hue="school", ax=ax)
         sns.regplot(data=df, x="attendance_rate", y="avg_grade", scatter=False, ax=ax, color="black")
