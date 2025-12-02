@@ -53,17 +53,17 @@ class StudentAnalyzer:
                 merged["attendance_rate"] = 1 - (merged["absences"] / merged["absences"].max())
             else:
                 merged["attendance_rate"] = 1.0
+        
+        # Create a combined absences column
+        if "absences_math" in merged.columns and "absences_por" in merged.columns:
+            merged["total_absences"] = merged[["absences_math","absences_por"]].mean(axis=1)
+        elif "absences" in merged.columns:
+            merged["total_absences"] = merged["absences"]
+        else:
+            merged["total_absences"] = 0
 
         self.merged_df = merged
         return merged
-    
-    # Create a combined absences column
-    if "absences_math" in merged.columns and "absences_por" in merged.columns:
-        merged["total_absences"] = merged[["absences_math","absences_por"]].mean(axis=1)
-    elif "absences" in merged.columns:
-        merged["total_absences"] = merged["absences"]
-    else:
-        merged["total_absences"] = 0
 
     
     #Grade Distribution
