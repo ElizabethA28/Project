@@ -17,29 +17,18 @@ analyzer = StudentAnalyzer(math_df, por_df, attendance_df)
 analyzer.clean_data()
 merged_df = analyzer.merge_data()
 
+# --- Guarantee derived columns exist ---
+merged_df["avg_grade"] = (merged_df["G3_math"] + merged_df["G3_por"]) / 2
+if "attendance_rate" not in merged_df.columns and "absences" in merged_df.columns:
+    merged_df["attendance_rate"] = 1 - (merged_df["absences"] / merged_df["absences"].max())
+
 # --- Sidebar filters ---
 school_filter = st.sidebar.selectbox("Select School", merged_df["school"].unique())
 grade_threshold = st.sidebar.slider("Grade Threshold", 0, 20, 10)
 attendance_threshold = st.sidebar.slider("Attendance Threshold", 0.0, 1.0, 0.9)
 
-# --- Prepare filtered data ---
+# --- Filtered data ---
 filtered = merged_df[merged_df["school"] == school_filter].copy()
-
-# Ensure avg_grade exists
-if "avg_grade" not in filtered.columns:
-    if "G3_math" in filtered.columns and "G3_por" in filtered.columns:
-        filtered["avg_grade"] = (filtered["G3_math"] + filtered["G3_por"]) / 2
-    else:
-        st.error("Missing grade columns (G3_math, G3_por) in dataset.")
-        st.stop()
-
-# Ensure attendance_rate exists
-if "attendance_rate" not in filtered.columns:
-    if "absences" in filtered.columns:
-        filtered["attendance_rate"] = 1 - (filtered["absences"] / filtered["absences"].max())
-    else:
-        st.error("Missing attendance information in dataset.")
-        st.stop()
 
 # --- Grade Distribution ---
 st.header("Grade Distribution by Subject")
