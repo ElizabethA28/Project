@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from student_analyzer import StudentAnalyzer
 
-st.title("📊 Student Performance & Attendance Dashboard")
+st.title("Student Performance & Attendance Dashboard")
 
 # Load raw datasets
 math_df = pd.read_csv("student-mat.csv", sep=";")
