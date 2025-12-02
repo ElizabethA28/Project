@@ -57,3 +57,4 @@ st.pyplot(analyzer.plot_grade_vs_age())
 st.header("Grades vs Absences Heatmap")
 st.pyplot(analyzer.plot_grade_absences_heatmap())
 
+

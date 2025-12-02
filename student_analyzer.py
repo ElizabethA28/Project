@@ -56,6 +56,14 @@ class StudentAnalyzer:
 
         self.merged_df = merged
         return merged
+    
+    # Create a combined absences column
+    if "absences_math" in merged.columns and "absences_por" in merged.columns:
+        merged["total_absences"] = merged[["absences_math","absences_por"]].mean(axis=1)
+    elif "absences" in merged.columns:
+        merged["total_absences"] = merged["absences"]
+    else:
+        merged["total_absences"] = 0
 
     
     #Grade Distribution
@@ -163,19 +171,16 @@ class StudentAnalyzer:
         return fig
 
     def plot_grade_absences_heatmap(self):
-    
         df = self.merged_df.copy()
-        # Select only grade and absence-related columns
+        # Focus only on grades + combined absences
         cols = ["G1_math","G2_math","G3_math",
                 "G1_por","G2_por","G3_por",
-                "avg_grade","absences","attendance_rate"]
-        df = df[cols].dropna()
-        # Compute correlations
-        corr = df.corr()
+                "avg_grade","total_absences","attendance_rate"]
+        cols = [c for c in cols if c in df.columns]
+        corr = df[cols].corr()
 
-        # Plot heatmap
         fig, ax = plt.subplots(figsize=(8,6))
         sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1, ax=ax)
-        ax.set_title("Correlation Heatmap: Grades vs Absences")
+        ax.set_title("Correlation Heatmap: Grades vs Total Absences")
         return fig
 
