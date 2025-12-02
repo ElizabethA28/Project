@@ -54,11 +54,7 @@ st.header("Grade vs Age")
 st.pyplot(analyzer.plot_grade_vs_age())
 
 # Full Correlation Heatmap
-st.header("Comprehensive Correlation Heatmap")
-st.pyplot(analyzer.plot_full_heatmap())
 
-st.header("Grades vs Attendance Heatmap")
-st.pyplot(analyzer.plot_grades_attendance_heatmap())
 
 
 
