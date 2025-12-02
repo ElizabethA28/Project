@@ -53,9 +53,10 @@ st.pyplot(analyzer.plot_gender_comparison())
 st.header("Grade vs Age")
 st.pyplot(analyzer.plot_grade_vs_age())
 
-# Full Correlation Heatmap
-st.header("Comprehensive Correlation Heatmap")
-st.pyplot(analyzer.plot_full_heatmap())
+# Correlation Heatmap
+st.header("Age vs Average Grade Heatmap")
+st.pyplot(analyzer.plot_age_vs_avg_grade_heatmap())
+
 
 
 

@@ -171,11 +171,12 @@ class StudentAnalyzer:
         return fig
 
 #heatmap
-    def plot_full_heatmap(self):
+    def plot_age_vs_avg_grade_heatmap(self):
         df = self.merged_df.copy()
-        # Select numeric columns only
-        numeric_df = df.select_dtypes(include="number")
-        fig, ax = plt.subplots(figsize=(10,7))
-        sns.heatmap(numeric_df.corr(), annot=True, cmap="viridis", ax=ax)
-        ax.set_title("Correlation Heatmap (Grades, Attendance, Absences, etc.)")
+        fig, ax = plt.subplots(figsize=(8,6))
+        sns.histplot(data=df, x="age", y="avg_grade", bins=20, pmax=0.8, cmap="viridis", ax=ax)
+        ax.set_title("Heatmap of Age vs Average Grade")
+        ax.set_xlabel("Age")
+        ax.set_ylabel("Average Grade")
         return fig
+
