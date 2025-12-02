@@ -12,109 +12,104 @@ class StudentAnalyzer:
 
     # CLEANING
     def clean_data(self):
-        # Clean math + Portuguese numeric columns
-        numeric_cols = ["G1", "G2", "G3", "absences"]
+        # Ensure numeric grades
         for df in [self.math_df, self.por_df]:
-            for col in numeric_cols:
+            for col in ["G1","G2","G3","absences"]:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors="coerce")
             if "school" in df.columns:
                 df["school"] = df["school"].str.upper()
 
+        # Rename grade columns to distinguish subjects
+        self.math_df = self.math_df.rename(columns={"G1":"G1_math","G2":"G2_math","G3":"G3_math"})
+        self.por_df  = self.por_df.rename(columns={"G1":"G1_por","G2":"G2_por","G3":"G3_por"})
+
         # Attendance cleaning
         if "Date" in self.attendance_df.columns:
-            self.attendance_df["Date"] = pd.to_datetime(
-                self.attendance_df["Date"], errors="coerce"
-            )
-
-        if "Status" in self.attendance_df.columns:
-            self.attendance_df["Present"] = (
-                self.attendance_df["Status"].str.lower() == "present"
-            ).astype(int)
-            self.attendance_df["Enrolled"] = 1
-
+            self.attendance_df["Date"] = pd.to_datetime(self.attendance_df["Date"], errors="coerce")
         if "Present" in self.attendance_df.columns and "Enrolled" in self.attendance_df.columns:
-            self.attendance_df["attendance_rate"] = (
-                self.attendance_df["Present"] / self.attendance_df["Enrolled"]
-            )
+            self.attendance_df["attendance_rate"] = self.attendance_df["Present"] / self.attendance_df["Enrolled"]
 
         # Aggregate attendance by school
         if "school" in self.attendance_df.columns and "attendance_rate" in self.attendance_df.columns:
             self.school_attendance = (
-                self.attendance_df.groupby("school")["attendance_rate"]
-                .mean()
-                .reset_index()
+                self.attendance_df.groupby("school")["attendance_rate"].mean().reset_index()
             )
 
     # MERGING
     def merge_data(self):
-        merge_keys = [
-            "school", "sex", "age", "address", "famsize", "Pstatus",
-            "Medu", "Fedu", "Mjob", "Fjob", "reason", "guardian"
-        ]
-        merged = pd.merge(
-            self.math_df,
-            self.por_df,
-            on=merge_keys,
-            suffixes=("_math", "_por"),
-            how="inner"
-        )
+        merge_keys = ["school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob","reason","guardian"]
+        merged = pd.merge(self.math_df, self.por_df, on=merge_keys, suffixes=("_math","_por"), how="inner")
         if self.school_attendance is not None:
             merged = merged.merge(self.school_attendance, on="school", how="left")
 
-        # Derived columns
-        merged["avg_grade"] = (merged["G3_math"] + merged["G3_por"]) / 2
+        merged["avg_grade"] = merged[["G3_math","G3_por"]].mean(axis=1)
         if "attendance_rate" not in merged.columns and "absences" in merged.columns:
             merged["attendance_rate"] = 1 - (merged["absences"] / merged["absences"].max())
 
         self.merged_df = merged
         return merged
 
-    # AT-RISK DETECTION
-    def detect_at_risk(self, grade_threshold=10, attendance_threshold=0.90):
+    # 1. Grade distribution
+    def plot_grade_distribution(self, group_by="subject"):
         df = self.merged_df.copy()
-        df["at_risk"] = (
-            (df["avg_grade"] < grade_threshold) |
-            (df["attendance_rate"] < attendance_threshold)
-        )
+        fig, ax = plt.subplots(figsize=(8,5))
+        if group_by=="subject":
+            sns.boxplot(data=df.melt(value_vars=["G3_math","G3_por"], var_name="Subject", value_name="Grade"),
+                        x="Subject", y="Grade", ax=ax)
+            ax.set_title("Grade Distribution by Subject")
+        elif group_by=="semester":
+            sem_avgs = df[["G1_math","G2_math","G3_math","G1_por","G2_por","G3_por"]].melt(var_name="Semester", value_name="Grade")
+            sns.boxplot(data=sem_avgs, x="Semester", y="Grade", ax=ax)
+            ax.set_title("Grade Distribution by Semester")
+        else:
+            sns.histplot(df["avg_grade"], bins=20, kde=True, ax=ax)
+            ax.set_title("Overall Grade Distribution")
+        return fig
+
+    # 2. Attendance correlation
+    def plot_attendance_vs_performance(self):
+        df = self.merged_df.copy()
+        fig, ax = plt.subplots(figsize=(8,5))
+        sns.scatterplot(data=df, x="attendance_rate", y="avg_grade", hue="school", ax=ax)
+        sns.regplot(data=df, x="attendance_rate", y="avg_grade", scatter=False, ax=ax, color="black")
+        ax.set_title("Attendance vs Performance")
+        return fig
+
+    # 3. At-risk students
+    def detect_at_risk(self, grade_threshold=10, attendance_threshold=0.9):
+        df = self.merged_df.copy()
+        df["at_risk"] = (df["avg_grade"] < grade_threshold) | (df["attendance_rate"] < attendance_threshold)
         return df[df["at_risk"]]
 
-    # SUMMARY
-    def grade_summary(self):
-        return self.merged_df[["G3_math", "G3_por", "avg_grade"]].describe()
-
-    def attendance_summary(self):
-        return self.school_attendance
-
-    # HEATMAPS
-    def heatmap_by_school(self, school_name):
-        df = self.merged_df[self.merged_df["school"] == school_name]
-        df = df.select_dtypes(include="number")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(df.corr(), annot=False, cmap="coolwarm", ax=ax)
-        ax.set_title(f"Correlation Heatmap – {school_name}")
+    def plot_at_risk(self, grade_threshold=10, attendance_threshold=0.9):
+        df = self.detect_at_risk(grade_threshold, attendance_threshold)
+        fig, ax = plt.subplots(figsize=(8,5))
+        sns.scatterplot(data=df, x="attendance_rate", y="avg_grade", hue="school", ax=ax)
+        ax.set_title("At-Risk Students: Attendance vs Grade")
         return fig
 
-    def heatmap_math_vs_por(self):
-        cols = ["G1_math", "G2_math", "G3_math", "G1_por", "G2_por", "G3_por"]
-        df = self.merged_df[cols].dropna()
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(df.corr(), annot=True, cmap="viridis", ax=ax)
-        ax.set_title("Math vs Portuguese Grade Correlation")
+    # 4. School comparison
+    def plot_school_comparison(self):
+        df = self.merged_df.groupby("school")[["G3_math","G3_por","avg_grade"]].mean().reset_index()
+        fig, ax = plt.subplots(figsize=(10,6))
+        df.plot(x="school", y=["G3_math","G3_por","avg_grade"], kind="bar", ax=ax)
+        ax.set_ylabel("Average Grade")
+        ax.set_title("Average Performance by School")
+        plt.xticks(rotation=45)
         return fig
 
-    def attendance_heatmap(self):
-        df = self.attendance_df.copy()
-        if "Date" in df.columns:
-            df["Month"] = df["Date"].dt.month
-            df["Day"] = df["Date"].dt.day
-        if "attendance_rate" in df.columns:
-            pivot = df.pivot_table(index="Month", columns="Day", values="attendance_rate")
-            fig, ax = plt.subplots(figsize=(14, 6))
-            sns.heatmap(pivot, cmap="YlGnBu", ax=ax)
-            ax.set_title("Attendance Rate Heatmap Over Time")
-            return fig
-        else:
-            fig, ax = plt.subplots()
-            ax.text(0.5, 0.5, "No attendance_rate data available", ha="center")
-            return fig
+    # 5. Performance trends
+    def plot_performance_trends(self):
+        df = self.merged_df.copy()
+        trend_df = pd.DataFrame({
+            "Semester":["G1","G2","G3"],
+            "Math":[df["G1_math"].mean(), df["G2_math"].mean(), df["G3_math"].mean()],
+            "Portuguese":[df["G1_por"].mean(), df["G2_por"].mean(), df["G3_por"].mean()]
+        })
+        fig, ax = plt.subplots(figsize=(8,5))
+        sns.lineplot(data=trend_df, x="Semester", y="Math", marker="o", ax=ax)
+        sns.lineplot(data=trend_df, x="Semester", y="Portuguese", marker="o", ax=ax)
+        ax.set_title("Performance Trends Across Semesters")
+        ax.set_ylabel("Average Grade")
+        return fig
