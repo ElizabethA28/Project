@@ -22,26 +22,47 @@ class StudentAnalyzer:
             for col in numeric_cols:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-            # Ensure school codes are uppercase
+            # Ensure school codes are uppercase (GP, MS)
             if "school" in df.columns:
                 df["school"] = df["school"].str.upper()
 
-        # Clean attendance
+        # -----------------------------
+        # Clean attendance dataset
+        # -----------------------------
+        # Convert date column
         if "Date" in self.attendance_df.columns:
             self.attendance_df["Date"] = pd.to_datetime(
                 self.attendance_df["Date"], errors="coerce"
             )
 
+        # Convert Present/Enrolled if Status column exists
+        if "Status" in self.attendance_df.columns:
+            self.attendance_df["Present"] = (
+                self.attendance_df["Status"].str.lower() == "present"
+            ).astype(int)
+            self.attendance_df["Enrolled"] = 1
+
+        # Compute attendance rate
         self.attendance_df["attendance_rate"] = (
             self.attendance_df["Present"] / self.attendance_df["Enrolled"]
         )
 
-        # Map DBN → school codes
-        school_map = {"01M015": "GP", "01M019": "MS"}
-        if "School DBN" in self.attendance_df.columns:
-            self.attendance_df["school"] = self.attendance_df["School DBN"].map(school_map)
+        # Map DBN → school names
+        school_map = {
+            "01M015": "Winners High School",
+            "01M019": "Marks High School",
+            "01M020": "Liberty High School",
+            "01M034": "Central High School",
+            "01M063": "Unity High School",
+            "02M531": "Harmony High School"
+        }
 
-        # Aggregate attendance
+        if "School DBN" in self.attendance_df.columns:
+            self.attendance_df["school"] = (
+                self.attendance_df["School DBN"].map(school_map)
+            )
+
+        # Aggregate attendance by school
         self.school_attendance = (
             self.attendance_df.groupby("school")["attendance_rate"]
             .mean()
@@ -67,6 +88,10 @@ class StudentAnalyzer:
 
         # Merge attendance
         merged = merged.merge(self.school_attendance, on="school", how="left")
+
+        # Warn if merge failed
+        if merged.empty:
+            print("Warning: merge produced an empty dataset")
 
         self.merged_df = merged
         return merged
@@ -99,21 +124,20 @@ class StudentAnalyzer:
     # ---------------------------------------------------------
     def heatmap_by_school(self, school_name):
         df = self.merged_df[self.merged_df["school"] == school_name]
-        corr = df.select_dtypes(include="number").corr()
+        df = df.select_dtypes(include="number")
 
         fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(corr, annot=False, cmap="coolwarm", ax=ax)
+        sns.heatmap(df.corr(), annot=False, cmap="coolwarm", ax=ax)
         ax.set_title(f"Correlation Heatmap – {school_name}")
         fig.tight_layout()
         return fig
 
     def heatmap_math_vs_por(self):
         cols = ["G1_math", "G2_math", "G3_math", "G1_por", "G2_por", "G3_por"]
-        df = self.merged_df[cols]
-        corr = df.corr()
+        df = self.merged_df[cols].dropna()
 
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(corr, annot=True, cmap="viridis", ax=ax)
+        sns.heatmap(df.corr(), annot=True, cmap="viridis", ax=ax)
         ax.set_title("Math vs Portuguese Grade Correlation")
         fig.tight_layout()
         return fig
