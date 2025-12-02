@@ -91,16 +91,24 @@ st.pyplot(fig)
 #Attendance vs Student Performance
 st.header("Attendance vs Student Performance")
 
+filtered = filtered.copy()
 filtered["avg_grade"] = (filtered["G3_math"] + filtered["G3_por"]) / 2
+plot_df = filtered.dropna(subset=["attendance_rate", "avg_grade"])
 
 fig, ax = plt.subplots(figsize=(8, 5))
-sns.regplot(
-    x=filtered["attendance_rate"],
-    y=filtered["avg_grade"],
-    scatter_kws={"alpha": 0.5},
-    line_kws={"color": "red"},
+sns.scatterplot(
+    data=plot_df,
+    x="attendance_rate",
+    y="avg_grade",
     ax=ax
 )
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 20)
+ax.set_xlabel("Attendance Rate")
+ax.set_ylabel("Average Final Grade")
+ax.set_title("Attendance vs Performance")
+st.pyplot(fig)
+
 
 ax.set_xlabel("Attendance Rate")
 ax.set_ylabel("Average Final Grade")

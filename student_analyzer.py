@@ -12,9 +12,9 @@ class StudentAnalyzer:
         self.merged_df = None
         self.school_attendance = None
 
-    # ---------------------------------------------------------
-    # 1. CLEANING
-    # ---------------------------------------------------------
+    
+    #CLEANING
+
     def clean_data(self):
         # Clean math + Portuguese numeric columns
         numeric_cols = ["G1", "G2", "G3", "absences"]
@@ -26,9 +26,7 @@ class StudentAnalyzer:
             if "school" in df.columns:
                 df["school"] = df["school"].str.upper()
 
-        # -----------------------------
-        # Clean attendance dataset
-        # -----------------------------
+        #CLEAN ATTENDANCE DATASET
         # Convert date column
         if "Date" in self.attendance_df.columns:
             self.attendance_df["Date"] = pd.to_datetime(
@@ -61,6 +59,8 @@ class StudentAnalyzer:
             self.attendance_df["school"] = (
                 self.attendance_df["School DBN"].map(school_map)
             )
+        plot_df = filtered.dropna(subset=["attendance_rate", "G3_math", "G3_por"])
+
 
         # Aggregate attendance by school
         self.school_attendance = (
@@ -69,9 +69,7 @@ class StudentAnalyzer:
             .reset_index()
         )
 
-    # ---------------------------------------------------------
-    # 2. MERGING
-    # ---------------------------------------------------------
+    #MERGING
     def merge_data(self):
         merge_keys = [
             "school", "sex", "age", "address", "famsize", "Pstatus",
@@ -96,9 +94,7 @@ class StudentAnalyzer:
         self.merged_df = merged
         return merged
 
-    # ---------------------------------------------------------
-    # 3. AT-RISK DETECTION
-    # ---------------------------------------------------------
+    # 3AT-RISK DETECTION
     def detect_at_risk(self, grade_threshold=10, attendance_threshold=0.90):
         df = self.merged_df.copy()
         df["avg_grade"] = (df["G3_math"] + df["G3_por"]) / 2
@@ -110,18 +106,14 @@ class StudentAnalyzer:
 
         return df[df["at_risk"] == True]
 
-    # ---------------------------------------------------------
-    # 4. SUMMARY STATISTICS
-    # ---------------------------------------------------------
+    #SUMMARY STATISTICS
     def grade_summary(self):
         return self.merged_df[["G3_math", "G3_por"]].describe()
 
     def attendance_summary(self):
         return self.school_attendance
 
-    # ---------------------------------------------------------
-    # 5. HEATMAPS
-    # ---------------------------------------------------------
+    #HEATMAPS
     def heatmap_by_school(self, school_name):
         df = self.merged_df[self.merged_df["school"] == school_name]
         df = df.select_dtypes(include="number")
