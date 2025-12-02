@@ -17,11 +17,6 @@ analyzer = StudentAnalyzer(math_df, por_df, attendance_df)
 analyzer.clean_data()
 merged_df = analyzer.merge_data()
 
-# --- Guarantee derived columns exist ---
-merged_df["avg_grade"] = (merged_df["G3_math"] + merged_df["G3_por"]) / 2
-if "attendance_rate" not in merged_df.columns and "absences" in merged_df.columns:
-    merged_df["attendance_rate"] = 1 - (merged_df["absences"] / merged_df["absences"].max())
-
 # --- Sidebar filters ---
 school_filter = st.sidebar.selectbox("Select School", merged_df["school"].unique())
 grade_threshold = st.sidebar.slider("Grade Threshold", 0, 20, 10)
@@ -54,6 +49,14 @@ at_risk_df = analyzer.detect_at_risk(
 )
 st.write(f"Total At-Risk Students: {len(at_risk_df)}")
 st.dataframe(at_risk_df[["school","sex","age","G3_math","G3_por","attendance_rate","avg_grade"]])
+
+# Download button
+st.download_button(
+    label="Download At-Risk Students as CSV",
+    data=at_risk_df.to_csv(index=False),
+    file_name="at_risk_students.csv",
+    mime="text/csv"
+)
 
 fig, ax = plt.subplots()
 sns.scatterplot(data=at_risk_df, x="attendance_rate", y="avg_grade", hue="school", ax=ax)
