@@ -171,7 +171,7 @@ class StudentAnalyzer:
         return fig
 
 #heatmap
-def plot_full_heatmap(self):
+    def plot_full_heatmap(self):
         df = self.merged_df.copy()
         # Select numeric columns only
         numeric_df = df.select_dtypes(include="number")
