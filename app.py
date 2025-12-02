@@ -38,8 +38,8 @@ st.pyplot(fig)
 st.header("Attendance vs Performance")
 fig, ax = plt.subplots()
 sns.scatterplot(
-    x=filtered["avg_attendance_rate"],
-    y=(filtered["g3_math"] + filtered["g3_por"]) / 2,
+    x=filtered["attendance_rate"],
+    y=(filtered["G3_math"] + filtered["G3_por"]) / 2,
     ax=ax
 )
 ax.set_xlabel("Average Attendance Rate")
