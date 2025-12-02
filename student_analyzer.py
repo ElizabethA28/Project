@@ -10,30 +10,38 @@ class StudentAnalyzer:
         self.por_df = por_df.copy()
         self.attendance_df = attendance_df.copy()
         self.merged_df = None
+        self.school_attendance = None
 
     # ---------------------------------------------------------
     # 1. CLEANING
     # ---------------------------------------------------------
     def clean_data(self):
-        # Convert numeric columns
+        # Clean math + Portuguese numeric columns
         numeric_cols = ["G1", "G2", "G3", "absences"]
         for df in [self.math_df, self.por_df]:
             for col in numeric_cols:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
+            # Ensure school codes are uppercase
+            if "school" in df.columns:
+                df["school"] = df["school"].str.upper()
+
         # Clean attendance
+        if "Date" in self.attendance_df.columns:
+            self.attendance_df["Date"] = pd.to_datetime(
+                self.attendance_df["Date"], errors="coerce"
+            )
+
         self.attendance_df["attendance_rate"] = (
             self.attendance_df["Present"] / self.attendance_df["Enrolled"]
         )
 
-        # Map DBN → UCI school codes
-        school_map = {
-            "01M015": "GP",
-            "01M019": "MS"
-        }
-        self.attendance_df["school"] = self.attendance_df["School DBN"].map(school_map)
+        # Map DBN → school codes
+        school_map = {"01M015": "GP", "01M019": "MS"}
+        if "School DBN" in self.attendance_df.columns:
+            self.attendance_df["school"] = self.attendance_df["School DBN"].map(school_map)
 
-        # Aggregate attendance by school
+        # Aggregate attendance
         self.school_attendance = (
             self.attendance_df.groupby("school")["attendance_rate"]
             .mean()
@@ -44,7 +52,6 @@ class StudentAnalyzer:
     # 2. MERGING
     # ---------------------------------------------------------
     def merge_data(self):
-        # Merge math + Portuguese on student attributes
         merge_keys = [
             "school", "sex", "age", "address", "famsize", "Pstatus",
             "Medu", "Fedu", "Mjob", "Fjob", "reason", "guardian"
@@ -86,62 +93,46 @@ class StudentAnalyzer:
 
     def attendance_summary(self):
         return self.school_attendance
-    
 
-
-    def clean_data(self):
-        # Convert grade columns to numeric
-        grade_cols = ["G1_x", "G2_x", "G3_x", "G1_y", "G2_y", "G3_y"]
-        for col in grade_cols:
-            if col in self.merged_df.columns:
-                self.merged_df[col] = pd.to_numeric(self.merged_df[col], errors="coerce")
-
-        # Convert attendance date
-        self.attendance_df["Date"] = pd.to_datetime(self.attendance_df["Date"], format="%Y%m%d")
-
-        # Compute attendance rate
-        self.attendance_df["AttendanceRate"] = (
-            self.attendance_df["Present"] / self.attendance_df["Enrolled"]
-        )
-
+    # ---------------------------------------------------------
+    # 5. HEATMAPS
+    # ---------------------------------------------------------
     def heatmap_by_school(self, school_name):
         df = self.merged_df[self.merged_df["school"] == school_name]
         corr = df.select_dtypes(include="number").corr()
 
-        plt.figure(figsize=(10, 6))
-        sns.heatmap(corr, annot=False, cmap="coolwarm")
-        plt.title(f"Correlation Heatmap – {school_name}")
-        plt.tight_layout()
-        return plt
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.heatmap(corr, annot=False, cmap="coolwarm", ax=ax)
+        ax.set_title(f"Correlation Heatmap – {school_name}")
+        fig.tight_layout()
+        return fig
 
     def heatmap_math_vs_por(self):
-        cols = ["G1_x", "G2_x", "G3_x", "G1_y", "G2_y", "G3_y"]
+        cols = ["G1_math", "G2_math", "G3_math", "G1_por", "G2_por", "G3_por"]
         df = self.merged_df[cols]
         corr = df.corr()
 
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(corr, annot=True, cmap="viridis")
-        plt.title("Math vs Portuguese Grade Correlation")
-        plt.tight_layout()
-        return plt
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.heatmap(corr, annot=True, cmap="viridis", ax=ax)
+        ax.set_title("Math vs Portuguese Grade Correlation")
+        fig.tight_layout()
+        return fig
 
     def attendance_heatmap(self):
         df = self.attendance_df.copy()
-        df["Month"] = df["Date"].dt.month
-        df["Day"] = df["Date"].dt.day
+
+        if "Date" in df.columns:
+            df["Month"] = df["Date"].dt.month
+            df["Day"] = df["Date"].dt.day
 
         pivot = df.pivot_table(
             index="Month",
             columns="Day",
-            values="AttendanceRate"
+            values="attendance_rate"
         )
 
-        plt.figure(figsize=(14, 6))
-        sns.heatmap(pivot, cmap="YlGnBu")
-        plt.title("Attendance Rate Heatmap Over Time")
-        plt.tight_layout()
-        return plt
-
-
-
-
+        fig, ax = plt.subplots(figsize=(14, 6))
+        sns.heatmap(pivot, cmap="YlGnBu", ax=ax)
+        ax.set_title("Attendance Rate Heatmap Over Time")
+        fig.tight_layout()
+        return fig
