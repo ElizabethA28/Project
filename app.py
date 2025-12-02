@@ -29,8 +29,8 @@ filtered = merged_df[merged_df["school"] == school_filter]
 # Grade Distribution
 st.header("Grade Distribution by Subject")
 fig, ax = plt.subplots()
-sns.histplot(filtered["g3_math"], kde=True, color="blue", label="Math", ax=ax)
-sns.histplot(filtered["g3_por"], kde=True, color="orange", label="Portuguese", ax=ax)
+sns.histplot(filtered["G3_math"], kde=True, color="blue", label="Math", ax=ax)
+sns.histplot(filtered["G3_por"], kde=True, color="orange", label="Portuguese", ax=ax)
 plt.legend()
 st.pyplot(fig)
 
