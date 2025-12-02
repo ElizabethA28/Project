@@ -55,6 +55,6 @@ st.pyplot(analyzer.plot_grade_vs_age())
 
 # Full Correlation Heatmap
 st.header("Grades vs Absences Heatmap")
-st.pyplot(analyzer.plot_grade_absences_heatmap())
+st.pyplot(analyzer.plot_full_heatmap())
 
 

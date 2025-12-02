@@ -170,17 +170,31 @@ class StudentAnalyzer:
         ax.set_ylabel("Average Grade")
         return fig
 
-    def plot_grade_absences_heatmap(self):
+    def plot_full_heatmap(self):
         df = self.merged_df.copy()
-        # Focus only on grades + combined absences
-        cols = ["G1_math","G2_math","G3_math",
-                "G1_por","G2_por","G3_por",
-                "avg_grade","total_absences","attendance_rate"]
-        cols = [c for c in cols if c in df.columns]
-        corr = df[cols].corr()
 
-        fig, ax = plt.subplots(figsize=(8,6))
-        sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1, ax=ax)
-        ax.set_title("Correlation Heatmap: Grades vs Total Absences")
+        # Select only numeric columns
+        numeric_df = df.select_dtypes(include="number")
+
+        # Defensive check: avoid empty dataframe
+        if numeric_df.empty:
+            raise ValueError("No numeric columns found in merged_df")
+
+        # Compute correlations
+        corr = numeric_df.corr()
+
+        # Plot heatmap
+        fig, ax = plt.subplots(figsize=(10,7))
+        sns.heatmap(
+            corr,
+            annot=True,          # show correlation values
+            fmt=".2f",           # format numbers
+            cmap="viridis",      # color palette
+            vmin=-1, vmax=1,     # full correlation scale
+            cbar_kws={"label": "Correlation Coefficient"},
+            ax=ax
+        )
+        ax.set_title("Correlation Heatmap (Grades, Attendance, Absences, etc.)")
         return fig
+
 
