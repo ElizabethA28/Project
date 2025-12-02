@@ -59,7 +59,17 @@ class StudentAnalyzer:
             self.attendance_df["school"] = (
                 self.attendance_df["School DBN"].map(school_map)
             )
-        plot_df = filtered.dropna(subset=["attendance_rate", "G3_math", "G3_por"])
+    def clean_data(self):
+        # compute attendance_rate
+        self.attendance_df["attendance_rate"] = (
+        self.attendance_df["Present"] / self.attendance_df["Enrolled"]
+        )
+        # aggregate
+        self.school_attendance = (
+        self.attendance_df.groupby("school")["attendance_rate"].mean().reset_index()
+        )
+
+        
 
 
         # Aggregate attendance by school

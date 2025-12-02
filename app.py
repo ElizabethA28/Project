@@ -18,9 +18,19 @@ grades_file = st.sidebar.file_uploader("Upload Grades CSV", type=["csv"])
 attendance_file = st.sidebar.file_uploader("Upload Attendance CSV", type=["csv"])
 
 # Analyzer
-analyzer = StudentAnalyzer(math_df, por_df, attendance_df)
-analyzer.clean_data()
-merged_df = analyzer.merge_data()
+filtered = merged_df[merged_df["school"] == school_filter].copy()
+filtered["avg_grade"] = (filtered["G3_math"] + filtered["G3_por"]) / 2
+plot_df = filtered.dropna(subset=["attendance_rate", "avg_grade"])
+
+if plot_df.empty:
+    st.warning("No data available for this selection.")
+else:
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=plot_df, x="attendance_rate", y="avg_grade", ax=ax)
+    st.pyplot(fig)
+
+
+
 
 # Sidebar filters
 school_filter = st.sidebar.selectbox("Select School", merged_df["school"].unique())
