@@ -124,3 +124,32 @@ class StudentAnalyzer:
         ax.set_title("Performance Trends Across Semesters")
         ax.set_ylabel("Average Grade")
         return fig
+
+    # Gender comparison
+    def plot_gender_comparison(self):
+        df = self.merged_df.copy()
+        fig, ax = plt.subplots(figsize=(8,5))
+        sns.barplot(data=df, x="sex", y="avg_grade", ci=None, ax=ax, palette="Set2")
+        ax.set_title("Average Grade by Gender")
+        ax.set_ylabel("Average Grade")
+        return fig
+
+    # Grade vs Age
+    def plot_grade_vs_age(self):
+        df = self.merged_df.copy()
+        fig, ax = plt.subplots(figsize=(8,5))
+        sns.boxplot(data=df, x="age", y="avg_grade", ax=ax, palette="coolwarm")
+        ax.set_title("Grade Distribution by Age")
+        ax.set_ylabel("Average Grade")
+        return fig
+
+    # Comprehensive correlation heatmap
+    def plot_full_heatmap(self):
+        df = self.merged_df.copy()
+        # Select numeric columns only
+        numeric_df = df.select_dtypes(include="number")
+        fig, ax = plt.subplots(figsize=(10,7))
+        sns.heatmap(numeric_df.corr(), annot=True, cmap="viridis", ax=ax)
+        ax.set_title("Correlation Heatmap (Grades, Attendance, Absences, etc.)")
+        return fig
+
