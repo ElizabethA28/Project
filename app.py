@@ -19,8 +19,16 @@ merged_df = analyzer.merge_data()
 
 # --- Sidebar filters ---
 school_filter = st.sidebar.selectbox("Select School", merged_df["school"].unique())
+grade_threshold = st.sidebar.slider("Grade Threshold", 0, 20, 10)
+attendance_threshold = st.sidebar.slider("Attendance Threshold", 0.0, 1.0, 0.9)
+
+# --- Prepare filtered data ---
 filtered = merged_df[merged_df["school"] == school_filter].copy()
 filtered["avg_grade"] = (filtered["G3_math"] + filtered["G3_por"]) / 2
+
+# Guarantee attendance_rate exists
+if "attendance_rate" not in filtered.columns and "absences" in filtered.columns:
+    filtered["attendance_rate"] = 1 - (filtered["absences"] / filtered["absences"].max())
 
 # --- Grade Distribution ---
 st.header("Grade Distribution by Subject")
@@ -40,7 +48,10 @@ st.pyplot(fig)
 
 # --- At-Risk Students ---
 st.header("At-Risk Students")
-at_risk_df = analyzer.detect_at_risk()
+at_risk_df = analyzer.detect_at_risk(
+    grade_threshold=grade_threshold,
+    attendance_threshold=attendance_threshold
+)
 st.write(f"Total At-Risk Students: {len(at_risk_df)}")
 st.dataframe(at_risk_df[["school","sex","age","G3_math","G3_por","attendance_rate","avg_grade"]])
 
