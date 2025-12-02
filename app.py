@@ -10,7 +10,7 @@ st.title("📊 Student Performance & Attendance Dashboard")
 # Load data (must exist in repo)
 math_df = pd.read_csv("student-mat.csv", sep=";")
 por_df = pd.read_csv("student-por.csv", sep=";")
-attendance_df = pd.read_excel("attandence.xlsx")
+attendance_df = pd.read_csv("attendance.csv")
 
 st.sidebar.header("Data upload")
 
