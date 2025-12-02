@@ -57,21 +57,40 @@ class StudentAnalyzer:
         self.merged_df = merged
         return merged
 
-    # 1. Grade distribution
+    
+    #Grade Distribution
     def plot_grade_distribution(self, group_by="subject"):
         df = self.merged_df.copy()
         fig, ax = plt.subplots(figsize=(8,5))
-        if group_by=="subject":
-            melted = df.melt(value_vars=["G3_math","G3_por"], var_name="Subject", value_name="Grade")
-            sns.boxplot(data=melted, x="Subject", y="Grade", ax=ax)
-            ax.set_title("Grade Distribution by Subject")
-        elif group_by=="semester":
-            sem_avgs = df[["G1_math","G2_math","G3_math","G1_por","G2_por","G3_por"]].melt(var_name="Semester", value_name="Grade")
-            sns.boxplot(data=sem_avgs, x="Semester", y="Grade", ax=ax)
-            ax.set_title("Grade Distribution by Semester")
+
+        if group_by == "subject":
+            # Compute average final grade per subject
+            subject_means = {
+                "Math": df["G3_math"].mean(),
+                "Portuguese": df["G3_por"].mean()
+            }
+            subjects = list(subject_means.keys())
+            grades = list(subject_means.values())
+
+            sns.barplot(x=subjects, y=grades, palette="Set2", ax=ax)
+            ax.set_title("Average Final Grade by Subject")
+            ax.set_ylabel("Average Grade")
+
+        elif group_by == "semester":
+            sem_avgs = df[[
+            "G1_math","G2_math","G3_math",
+            "G1_por","G2_por","G3_por"
+            ]].melt(var_name="Semester", value_name="Grade")
+
+            sns.barplot(data=sem_avgs, x="Semester", y="Grade", ci=None, palette="muted", ax=ax)
+            ax.set_title("Average Grade by Semester")
+            ax.set_ylabel("Average Grade")
+
         else:
             sns.histplot(df["avg_grade"], bins=20, kde=True, ax=ax)
             ax.set_title("Overall Grade Distribution")
+            ax.set_xlabel("Average Grade")
+            ax.set_ylabel("Number of Students")
         return fig
 
     # 2. Attendance correlation
@@ -143,13 +162,20 @@ class StudentAnalyzer:
         ax.set_ylabel("Average Grade")
         return fig
 
-    # Comprehensive correlation heatmap
-    def plot_full_heatmap(self):
+    def plot_grade_absences_heatmap(self):
+    
         df = self.merged_df.copy()
-        # Select numeric columns only
-        numeric_df = df.select_dtypes(include="number")
-        fig, ax = plt.subplots(figsize=(10,7))
-        sns.heatmap(numeric_df.corr(), annot=True, cmap="viridis", ax=ax)
-        ax.set_title("Correlation Heatmap (Grades, Attendance, Absences, etc.)")
+        # Select only grade and absence-related columns
+        cols = ["G1_math","G2_math","G3_math",
+                "G1_por","G2_por","G3_por",
+                "avg_grade","absences","attendance_rate"]
+        df = df[cols].dropna()
+        # Compute correlations
+        corr = df.corr()
+
+        # Plot heatmap
+        fig, ax = plt.subplots(figsize=(8,6))
+        sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1, ax=ax)
+        ax.set_title("Correlation Heatmap: Grades vs Absences")
         return fig
 

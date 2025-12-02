@@ -19,9 +19,12 @@ grade_threshold = st.sidebar.slider("Grade Threshold", 0, 20, 10)
 attendance_threshold = st.sidebar.slider("Attendance Threshold", 0.0, 1.0, 0.9)
 
 # Grade Distribution
-st.header("Grade Distribution")
+st.header("Grade Distribution by Subject")
 st.pyplot(analyzer.plot_grade_distribution(group_by="subject"))
+
+st.header("Grade Distribution by Semester")
 st.pyplot(analyzer.plot_grade_distribution(group_by="semester"))
+
 
 # Attendance vs Performance
 st.header("Attendance vs Performance")
@@ -51,6 +54,6 @@ st.header("Grade vs Age")
 st.pyplot(analyzer.plot_grade_vs_age())
 
 # Full Correlation Heatmap
-st.header("Comprehensive Correlation Heatmap")
-st.pyplot(analyzer.plot_full_heatmap())
+st.header("Grades vs Absences Heatmap")
+st.pyplot(analyzer.plot_grade_absences_heatmap())
 
